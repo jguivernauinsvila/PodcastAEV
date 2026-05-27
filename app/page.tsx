@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Player from "../components/Player"
-import podcastsData from "../data/podcasts.json"
+import Papa from "papaparse"
 
 type Podcast = {
   id: number
@@ -12,12 +12,49 @@ type Podcast = {
   date: string
 }
 
-export default function Page() {
-  const podcasts: Podcast[] = podcastsData as Podcast[]
+const SHEET_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdZFdKel-XUVoxtjkZIKvmebVrleePVT577i1UnYUHU0lNFZZG4yo4lX-YWudlJtDvakZKu28YfQd8/pub?gid=0&single=true&output=csv"
 
+function parseCSV(csv: string): Podcast[] {
+  const result = Papa.parse(csv, {
+    header: true,
+    skipEmptyLines: true
+  })
+
+  return (result.data as any[]).map(row => ({
+    id: Number(row.id),
+    title: row.title,
+    category: row.category,
+    audio: row.audio,
+    date: row.date
+  }))
+}
+
+export default function Page() {
+  const [podcasts, setPodcasts] = useState<Podcast[]>([])
   const [category, setCategory] = useState("all")
   const [current, setCurrent] = useState<Podcast | null>(null)
   const [favorites, setFavorites] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(SHEET_URL)
+        const text = await res.text()
+        const data = parseCSV(text)
+
+        setPodcasts(data)
+        setCurrent(data[0])
+      } catch (err) {
+        console.error("Error loading sheet", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [])
 
   useEffect(() => {
     const saved = localStorage.getItem("favorites")
@@ -40,18 +77,12 @@ export default function Page() {
     return list.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     )
-  }, [category, favorites])
+  }, [category, podcasts, favorites])
 
   const categories = useMemo(() => {
     const base = Array.from(new Set(podcasts.map(p => p.category)))
     return ["all", ...base, "favorits"]
-  }, [])
-
-  useEffect(() => {
-    if (!current && filtered.length > 0) {
-      setCurrent(filtered[0])
-    }
-  }, [filtered])
+  }, [podcasts])
 
   const getNext = (id: number) => {
     const index = filtered.findIndex(p => p.id === id)
@@ -72,6 +103,14 @@ export default function Page() {
     setCurrent(p)
   }
 
+  if (loading) {
+    return (
+      <div style={{ padding: 20 }}>
+        Carregant podcasts...
+      </div>
+    )
+  }
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -84,7 +123,6 @@ export default function Page() {
         Això és Vila!
       </h1>
 
-      {/* CATEGORIES */}
       <div style={{
         display: "flex",
         gap: 10,
@@ -109,7 +147,6 @@ export default function Page() {
         ))}
       </div>
 
-      {/* LISTA */}
       <div style={{ display: "grid", gap: 12, marginBottom: 120 }}>
         {filtered.map(p => (
           <div
@@ -139,17 +176,16 @@ export default function Page() {
                 top: 10,
                 border: "none",
                 background: "transparent",
-                fontSize: 18,
+                fontSize: 16,
                 cursor: "pointer"
               }}
             >
-              {favorites.includes(p.id) ? "❤️" : "🤍"}
+              {favorites.includes(p.id) ? "❤️" : ""}
             </button>
           </div>
         ))}
       </div>
 
-      {/* PLAYER */}
       {current && (
         <Player
           key={current.id}
