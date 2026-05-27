@@ -31,17 +31,20 @@ export default function Page() {
   const filtered = useMemo(() => {
     let list = [...podcasts]
 
-    if (category !== "all") {
+    if (category === "favorits") {
+      list = list.filter(p => favorites.includes(p.id))
+    } else if (category !== "all") {
       list = list.filter(p => p.category === category)
     }
 
     return list.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     )
-  }, [category])
+  }, [category, favorites])
 
   const categories = useMemo(() => {
-    return ["all", ...Array.from(new Set(podcasts.map(p => p.category)))]
+    const base = Array.from(new Set(podcasts.map(p => p.category)))
+    return ["all", ...base, "favorits"]
   }, [])
 
   useEffect(() => {
@@ -65,14 +68,29 @@ export default function Page() {
     )
   }
 
+  const handleSelect = (p: Podcast) => {
+    setCurrent(p)
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white", padding: 20 }}>
+    <div style={{
+      minHeight: "100vh",
+      background: "#0b0b1a",
+      color: "white",
+      padding: 20
+    }}>
 
       <h1 style={{ fontSize: 28, marginBottom: 10 }}>
         Això és Vila!
       </h1>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+      {/* CATEGORIES */}
+      <div style={{
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap",
+        marginBottom: 20
+      }}>
         {categories.map(cat => (
           <button
             key={cat}
@@ -82,7 +100,8 @@ export default function Page() {
               borderRadius: 20,
               border: "none",
               background: category === cat ? "#7c3aed" : "#222",
-              color: "white"
+              color: "white",
+              cursor: "pointer"
             }}
           >
             {cat}
@@ -90,11 +109,12 @@ export default function Page() {
         ))}
       </div>
 
+      {/* LISTA */}
       <div style={{ display: "grid", gap: 12, marginBottom: 120 }}>
         {filtered.map(p => (
           <div
             key={p.id}
-            onClick={() => setCurrent(p)}
+            onClick={() => handleSelect(p)}
             style={{
               padding: 12,
               borderRadius: 12,
@@ -129,11 +149,13 @@ export default function Page() {
         ))}
       </div>
 
+      {/* PLAYER */}
       {current && (
         <Player
           key={current.id}
           src={current.audio}
           title={current.title}
+          autoPlay={true}
           onNext={() => setCurrent(getNext(current.id))}
         />
       )}

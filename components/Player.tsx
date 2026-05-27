@@ -6,9 +6,10 @@ type Props = {
   src: string
   title: string
   onNext: () => void
+  autoPlay?: boolean
 }
 
-export default function Player({ src, title, onNext }: Props) {
+export default function Player({ src, title, onNext, autoPlay }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const barRef = useRef<HTMLDivElement | null>(null)
 
@@ -23,43 +24,52 @@ export default function Player({ src, title, onNext }: Props) {
       setProgress((audio.currentTime / audio.duration) * 100 || 0)
     }
 
-    const handleEnd = () => {
+    const end = () => {
       onNext()
     }
 
     audio.addEventListener("timeupdate", update)
-    audio.addEventListener("ended", handleEnd)
+    audio.addEventListener("ended", end)
 
     return () => {
       audio.removeEventListener("timeupdate", update)
-      audio.removeEventListener("ended", handleEnd)
+      audio.removeEventListener("ended", end)
     }
   }, [onNext])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    audio.load()
+
+    if (autoPlay) {
+      audio.play()
+      setPlaying(true)
+    } else {
+      setPlaying(false)
+    }
+  }, [src])
 
   const toggle = () => {
     const audio = audioRef.current
     if (!audio) return
 
-    if (playing) {
-      audio.pause()
-    } else {
-      audio.play()
-    }
+    if (playing) audio.pause()
+    else audio.play()
 
     setPlaying(!playing)
   }
 
-  // ⏩ SEEK (clic a la barra)
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const seek = (e: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current
     const bar = barRef.current
     if (!audio || !bar) return
 
     const rect = bar.getBoundingClientRect()
-    const clickX = e.clientX - rect.left
-    const width = rect.width
+    const x = e.clientX - rect.left
+    const percent = x / rect.width
 
-    const percent = clickX / width
     audio.currentTime = percent * audio.duration
   }
 
@@ -78,24 +88,21 @@ export default function Player({ src, title, onNext }: Props) {
         {title}
       </div>
 
-      {/* PROGRESS BAR CLICKABLE */}
       <div
         ref={barRef}
-        onClick={handleSeek}
+        onClick={seek}
         style={{
           height: 8,
           background: "#333",
           borderRadius: 4,
           marginBottom: 10,
-          cursor: "pointer",
-          position: "relative"
+          cursor: "pointer"
         }}
       >
         <div style={{
           width: `${progress}%`,
           height: "100%",
-          background: "#7c3aed",
-          borderRadius: 4
+          background: "#7c3aed"
         }} />
       </div>
 
@@ -123,7 +130,7 @@ export default function Player({ src, title, onNext }: Props) {
             color: "white"
           }}
         >
-          Next ▶
+          Next
         </button>
       </div>
 
