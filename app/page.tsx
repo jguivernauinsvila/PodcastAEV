@@ -18,7 +18,6 @@ export default function Page() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
   const [category, setCategory] = useState("all")
   const [current, setCurrent] = useState<Podcast | null>(null)
-  const [favorites, setFavorites] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,28 +29,11 @@ export default function Page() {
         if (!Array.isArray(data)) {
           setPodcasts([])
           setCurrent(null)
-          setLoading(false)
           return
         }
 
-        const cleaned: Podcast[] = data
-          .filter(p =>
-            p.id &&
-            p.title &&
-            p.category &&
-            p.audio &&
-            p.date
-          )
-          .map(p => ({
-            id: Number(p.id),
-            title: String(p.title),
-            category: String(p.category),
-            audio: String(p.audio),
-            date: String(p.date)
-          }))
-
-        setPodcasts(cleaned)
-        setCurrent(cleaned.length > 0 ? cleaned[0] : null)
+        setPodcasts(data)
+        setCurrent(data.length > 0 ? data[0] : null)
 
       } catch (err) {
         console.error(err)
@@ -65,33 +47,23 @@ export default function Page() {
     load()
   }, [])
 
-  useEffect(() => {
-    const saved = localStorage.getItem("favorites")
-    if (saved) setFavorites(JSON.parse(saved))
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem("favorites", JSON.stringify(favorites))
-  }, [favorites])
-
   const filtered = useMemo(() => {
     let list = [...podcasts]
 
-    if (category === "favorits") {
-      list = list.filter(p => favorites.includes(p.id))
-    } else if (category !== "all") {
+    if (category !== "all") {
       list = list.filter(p => p.category === category)
     }
 
     return list.sort(
       (a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
+        new Date(b.date).getTime() -
+        new Date(a.date).getTime()
     )
-  }, [category, podcasts, favorites])
+  }, [category, podcasts])
 
   const categories = useMemo(() => {
     const base = Array.from(new Set(podcasts.map(p => p.category)))
-    return ["all", ...base, "favorits"]
+    return ["all", ...base]
   }, [podcasts])
 
   const getNext = (id: number) => {
@@ -103,7 +75,7 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div style={{ padding: 20, color: "white" }}>
+      <div style={{ padding: 20 }}>
         Carregant podcasts...
       </div>
     )
