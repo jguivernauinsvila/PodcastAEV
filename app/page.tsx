@@ -11,8 +11,8 @@ type Podcast = {
   date: string
 }
 
-const SHEET_URL =
-  "https://opensheet.elk.sh/2PACX-1vSdZFdKel-XUVoxtjkZIKvmebVrleePVT577i1UnYUHU0lNFZZG4yo4lX-YWudlJtDvakZKu28YfQd8/1"
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbwkPmcBtauh47l98xQ66LWUuYheSUUlLLxewHnf1X9NSJ-o2viUIVEtTaPqzeJK5131eg/exec"
 
 export default function Page() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
@@ -24,13 +24,39 @@ export default function Page() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(SHEET_URL)
+        const res = await fetch(API_URL)
         const data = await res.json()
 
-        setPodcasts(data)
-        setCurrent(data[0] || null)
+        if (!Array.isArray(data)) {
+          setPodcasts([])
+          setCurrent(null)
+          setLoading(false)
+          return
+        }
+
+        const cleaned: Podcast[] = data
+          .filter(p =>
+            p.id &&
+            p.title &&
+            p.category &&
+            p.audio &&
+            p.date
+          )
+          .map(p => ({
+            id: Number(p.id),
+            title: String(p.title),
+            category: String(p.category),
+            audio: String(p.audio),
+            date: String(p.date)
+          }))
+
+        setPodcasts(cleaned)
+        setCurrent(cleaned.length > 0 ? cleaned[0] : null)
+
       } catch (err) {
-        console.error("Error loading sheet", err)
+        console.error(err)
+        setPodcasts([])
+        setCurrent(null)
       } finally {
         setLoading(false)
       }
@@ -58,7 +84,8 @@ export default function Page() {
     }
 
     return list.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
     )
   }, [category, podcasts, favorites])
 
@@ -74,30 +101,35 @@ export default function Page() {
     return filtered[0]
   }
 
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev =>
-      prev.includes(id)
-        ? prev.filter(f => f !== id)
-        : [...prev, id]
+  if (loading) {
+    return (
+      <div style={{ padding: 20, color: "white" }}>
+        Carregant podcasts...
+      </div>
     )
   }
 
-  const handleSelect = (p: Podcast) => {
-    setCurrent(p)
-  }
-
-  if (loading) {
-    return <div style={{ padding: 20 }}>Carregant podcasts...</div>
-  }
-
   return (
-    <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white", padding: 20 }}>
-      
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0b0b1a",
+        color: "white",
+        padding: 20
+      }}
+    >
       <h1 style={{ fontSize: 28, marginBottom: 10 }}>
         Això és Vila!
       </h1>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          marginBottom: 20
+        }}
+      >
         {categories.map(cat => (
           <button
             key={cat}
@@ -106,7 +138,8 @@ export default function Page() {
               padding: "6px 12px",
               borderRadius: 20,
               border: "none",
-              background: category === cat ? "#7c3aed" : "#222",
+              background:
+                category === cat ? "#7c3aed" : "#222",
               color: "white",
               cursor: "pointer"
             }}
@@ -120,37 +153,22 @@ export default function Page() {
         {filtered.map(p => (
           <div
             key={p.id}
-            onClick={() => handleSelect(p)}
+            onClick={() => setCurrent(p)}
             style={{
               padding: 12,
               borderRadius: 12,
-              background: "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
-              cursor: "pointer",
-              position: "relative"
+              background:
+                "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
+              cursor: "pointer"
             }}
           >
-            <div style={{ fontWeight: "bold" }}>{p.title}</div>
+            <div style={{ fontWeight: "bold" }}>
+              {p.title}
+            </div>
+
             <div style={{ fontSize: 12, opacity: 0.7 }}>
               {p.category} · {p.date}
             </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleFavorite(p.id)
-              }}
-              style={{
-                position: "absolute",
-                right: 10,
-                top: 10,
-                border: "none",
-                background: "transparent",
-                fontSize: 16,
-                cursor: "pointer"
-              }}
-            >
-              {favorites.includes(p.id) ? "❤️" : ""}
-            </button>
           </div>
         ))}
       </div>
@@ -161,7 +179,9 @@ export default function Page() {
           src={current.audio}
           title={current.title}
           autoPlay={true}
-          onNext={() => setCurrent(getNext(current.id))}
+          onNext={() =>
+            setCurrent(getNext(current.id))
+          }
         />
       )}
     </div>
