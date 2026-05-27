@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "title": "En veu alta",
+    "category": "En veu alta",
+    "audio": "/audio/veu1.mp3",
+    "date": "2026-01-20"
+  },
+  {
+    "id": 2,
+    "title": "Interessants",
+    "category": "Interessants",
+    "audio": "/audio/interessants.mp3",
+    "date": "2026-01-22"
+  },
+  {
+    "id": 3,
+    "title": "Sidral",
+    "category": "Sidral",
+    "audio": "/audio/sidral.mp3",
+    "date": "2026-01-23"
+  },
+  {
+    "id": 4,
+    "title": "Efervescència",
+    "category": "Efervescència",
+    "audio": "/audio/efervescencia.mp3",
+    "date": "2026-01-25"
+  }
+]
