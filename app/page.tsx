@@ -12,29 +12,7 @@ type Podcast = {
 }
 
 const SHEET_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdZFdKel-XUVoxtjkZIKvmebVrleePVT577i1UnYUHU0lNFZZG4yo4lX-YWudlJtDvakZKu28YfQd8/pub?gid=0&single=true&output=csv"
-
-function parseCSV(csv: string): Podcast[] {
-  const lines = csv
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-
-  // treu headers
-  const dataLines = lines.slice(1)
-
-  return dataLines.map(line => {
-    const values = line.split(",")
-
-    return {
-      id: Number(values[0]?.trim()),
-      title: values[1]?.trim(),
-      category: values[2]?.trim(),
-      audio: values[3]?.trim(),
-      date: values[4]?.trim()
-    }
-  })
-}
+  "https://opensheet.elk.sh/2PACX-1vSdZFdKel-XUVoxtjkZIKvmebVrleePVT577i1UnYUHU0lNFZZG4yo4lX-YWudlJtDvakZKu28YfQd8/1"
 
 export default function Page() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
@@ -47,11 +25,7 @@ export default function Page() {
     const load = async () => {
       try {
         const res = await fetch(SHEET_URL)
-        const text = await res.text()
-
-        console.log("CSV RAW:", text) // DEBUG IMPORTANT
-
-        const data = parseCSV(text)
+        const data = await res.json()
 
         setPodcasts(data)
         setCurrent(data[0] || null)
@@ -117,26 +91,13 @@ export default function Page() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0b0b1a",
-        color: "white",
-        padding: 20
-      }}
-    >
+    <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white", padding: 20 }}>
+      
       <h1 style={{ fontSize: 28, marginBottom: 10 }}>
         Això és Vila!
       </h1>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          marginBottom: 20
-        }}
-      >
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
         {categories.map(cat => (
           <button
             key={cat}
@@ -174,7 +135,7 @@ export default function Page() {
             </div>
 
             <button
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation()
                 toggleFavorite(p.id)
               }}
