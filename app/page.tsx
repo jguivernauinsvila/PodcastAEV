@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Player from "../components/Player"
-import Papa from "papaparse"
 
 type Podcast = {
   id: number
@@ -16,18 +15,25 @@ const SHEET_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdZFdKel-XUVoxtjkZIKvmebVrleePVT577i1UnYUHU0lNFZZG4yo4lX-YWudlJtDvakZKu28YfQd8/pub?gid=0&single=true&output=csv"
 
 function parseCSV(csv: string): Podcast[] {
-  const result = Papa.parse(csv, {
-    header: true,
-    skipEmptyLines: true
-  })
+  const lines = csv
+    .trim()
+    .split("\n")
+    .filter(Boolean)
 
-  return (result.data as any[]).map(row => ({
-    id: Number(row.id),
-    title: row.title,
-    category: row.category,
-    audio: row.audio,
-    date: row.date
-  }))
+  // treu headers
+  const dataLines = lines.slice(1)
+
+  return dataLines.map(line => {
+    const values = line.split(",")
+
+    return {
+      id: Number(values[0]?.trim()),
+      title: values[1]?.trim(),
+      category: values[2]?.trim(),
+      audio: values[3]?.trim(),
+      date: values[4]?.trim()
+    }
+  })
 }
 
 export default function Page() {
@@ -42,10 +48,13 @@ export default function Page() {
       try {
         const res = await fetch(SHEET_URL)
         const text = await res.text()
+
+        console.log("CSV RAW:", text) // DEBUG IMPORTANT
+
         const data = parseCSV(text)
 
         setPodcasts(data)
-        setCurrent(data[0])
+        setCurrent(data[0] || null)
       } catch (err) {
         console.error("Error loading sheet", err)
       } finally {
@@ -104,31 +113,30 @@ export default function Page() {
   }
 
   if (loading) {
-    return (
-      <div style={{ padding: 20 }}>
-        Carregant podcasts...
-      </div>
-    )
+    return <div style={{ padding: 20 }}>Carregant podcasts...</div>
   }
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#0b0b1a",
-      color: "white",
-      padding: 20
-    }}>
-
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0b0b1a",
+        color: "white",
+        padding: 20
+      }}
+    >
       <h1 style={{ fontSize: 28, marginBottom: 10 }}>
         Això és Vila!
       </h1>
 
-      <div style={{
-        display: "flex",
-        gap: 10,
-        flexWrap: "wrap",
-        marginBottom: 20
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          marginBottom: 20
+        }}
+      >
         {categories.map(cat => (
           <button
             key={cat}
@@ -166,7 +174,7 @@ export default function Page() {
             </div>
 
             <button
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation()
                 toggleFavorite(p.id)
               }}
