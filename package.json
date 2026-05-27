@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "autoprefixer": "^10.4.21",
