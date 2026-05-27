@@ -2,125 +2,88 @@
 
 import { useEffect, useRef, useState } from "react"
 
-type Track = {
+type Props = {
+  src: string
   title: string
-  audio: string
 }
 
-export default function Player() {
+export default function Player({ src, title }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  const [track, setTrack] = useState<Track | null>(null)
-  const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem("lastPodcast")
+    const audio = audioRef.current
+    if (!audio) return
 
-    if (saved) {
-      const t = JSON.parse(saved)
-      setTrack(t)
-
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.src = t.audio
-        }
-      }, 50)
+    const update = () => {
+      setProgress((audio.currentTime / audio.duration) * 100 || 0)
     }
 
-    ;(window as any).playPodcast = (t: Track) => {
-      setTrack(t)
-      localStorage.setItem("lastPodcast", JSON.stringify(t))
+    audio.addEventListener("timeupdate", update)
 
-      if (audioRef.current) {
-        audioRef.current.src = t.audio
-        audioRef.current.play()
-        setPlaying(true)
-      }
+    return () => {
+      audio.removeEventListener("timeupdate", update)
     }
   }, [])
 
-  function togglePlay() {
-    if (!audioRef.current) return
+  const toggle = () => {
+    const audio = audioRef.current
+    if (!audio) return
 
     if (playing) {
-      audioRef.current.pause()
-      setPlaying(false)
+      audio.pause()
     } else {
-      audioRef.current.play()
-      setPlaying(true)
+      audio.play()
     }
+
+    setPlaying(!playing)
   }
-
-  // 📊 PROGRÉS
-  function handleTimeUpdate() {
-    if (!audioRef.current) return
-
-    const current = audioRef.current.currentTime
-    const duration = audioRef.current.duration
-
-    if (duration) {
-      setProgress((current / duration) * 100)
-    }
-  }
-
-  if (!track) return null
 
   return (
-    <>
-      <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} />
+    <div style={{
+      position: "fixed",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: "#111",
+      padding: 12,
+      borderTop: "1px solid #333"
+    }}>
+      
+      <div style={{ fontSize: 14, marginBottom: 6 }}>
+        {title}
+      </div>
 
       <div
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "#1a1025",
-          color: "white",
-          padding: 12,
-          zIndex: 50
+          height: 6,
+          background: "#333",
+          borderRadius: 4,
+          marginBottom: 10
         }}
       >
-        {/* barra progrés */}
-        <div
-          style={{
-            height: 4,
-            background: "#2e1a3a",
-            borderRadius: 4,
-            overflow: "hidden",
-            marginBottom: 8
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${progress}%`,
-              background: "#a855f7"
-            }}
-          />
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <strong>{track.title}</strong>
-          </div>
-
-          <button
-            onClick={togglePlay}
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "none",
-              cursor: "pointer",
-              background: "#a855f7",
-              color: "white"
-            }}
-          >
-            {playing ? "⏸" : "▶"}
-          </button>
-        </div>
+        <div style={{
+          width: `${progress}%`,
+          height: "100%",
+          background: "#7c3aed"
+        }} />
       </div>
-    </>
+
+      <button
+        onClick={toggle}
+        style={{
+          padding: "6px 12px",
+          borderRadius: 8,
+          border: "none",
+          background: "#7c3aed",
+          color: "white"
+        }}
+      >
+        {playing ? "Pause" : "Play"}
+      </button>
+
+      <audio ref={audioRef} src={src} />
+    </div>
   )
 }

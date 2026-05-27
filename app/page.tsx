@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Player from "../components/Player"
-import podcasts from "../data/podcasts.json"
+import podcastsData from "../data/podcasts.json"
 
 type Podcast = {
   id: number
@@ -12,150 +12,90 @@ type Podcast = {
   date: string
 }
 
-export default function Home() {
-  const data = podcasts as Podcast[]
+export default function Page() {
+  const [category, setCategory] = useState("all")
+  const [current, setCurrent] = useState<Podcast | null>(null)
 
-  // 🌍 global per autoplay
-  ;(window as any).allPodcasts = data
+  const podcasts: Podcast[] = podcastsData as Podcast[]
 
-  // ❤️ FAVORITS (persistents)
-  const [favorites, setFavorites] = useState<number[]>([])
+  const filtered = useMemo(() => {
+    let list = [...podcasts]
 
-  useEffect(() => {
-    const saved = localStorage.getItem("favorites")
-    if (saved) setFavorites(JSON.parse(saved))
+    if (category !== "all") {
+      list = list.filter(p => p.category === category)
+    }
+
+    // més nous a més antics
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [category])
+
+  const categories = useMemo(() => {
+    return ["all", ...Array.from(new Set(podcasts.map(p => p.category)))]
   }, [])
 
-  function toggleFavorite(id: number) {
-    let updated: number[]
-
-    if (favorites.includes(id)) {
-      updated = favorites.filter(f => f !== id)
-    } else {
-      updated = [...favorites, id]
+  useEffect(() => {
+    if (!current && filtered.length > 0) {
+      setCurrent(filtered[0])
     }
-
-    setFavorites(updated)
-    localStorage.setItem("favorites", JSON.stringify(updated))
-  }
-
-  // 🧭 categories
-  const categories = useMemo(() => {
-    const unique = Array.from(new Set(data.map(p => p.category)))
-    return ["Totes", "❤️ Favorits", ...unique]
-  }, [data])
-
-  const [filter, setFilter] = useState("Totes")
-
-  // 📅 filtrat + ordenació
-  const filtered = useMemo(() => {
-    let list = [...data]
-
-    list.sort((a, b) => (b.date > a.date ? 1 : -1))
-
-    if (filter === "❤️ Favorits") {
-      list = list.filter(p => favorites.includes(p.id))
-    } else if (filter !== "Totes") {
-      list = list.filter(p => p.category === filter)
-    }
-
-    return list
-  }, [data, filter, favorites])
+  }, [filtered])
 
   return (
-    <>
-      <main
-        style={{
-          padding: 16,
-          maxWidth: 900,
-          margin: "0 auto",
-          fontFamily: "Arial",
-          background: "#0f172a",
-          minHeight: "100vh",
-          color: "white",
-          paddingBottom: 140
-        }}
-      >
-        {/* HEADER */}
-        <h1 style={{ fontSize: 26, marginBottom: 12 }}>
-          Això és Vila!
-        </h1>
+    <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white", padding: 20 }}>
+      
+      {/* HEADER */}
+      <h1 style={{ fontSize: 28, marginBottom: 10 }}>
+        Això és Vila!
+      </h1>
 
-        {/* FILTRES */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 20,
-                border: "none",
-                cursor: "pointer",
-                background: filter === cat ? "#a855f7" : "#1e1b2e",
-                color: "white",
-                fontSize: 12
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+      {/* FILTRES */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setCategory(cat)}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 20,
+              border: "none",
+              cursor: "pointer",
+              background: category === cat ? "#7c3aed" : "#222",
+              color: "white"
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
-        {/* CARDS PETITES */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 12
-          }}
-        >
-          {filtered.map(p => (
-            <div
-              key={p.id}
-              style={{
-                padding: 12,
-                borderRadius: 14,
-                background: "#1e1b2e",
-                cursor: "pointer",
-                position: "relative"
-              }}
-            >
-              {/* ❤️ FAVORIT */}
-              <div
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggleFavorite(p.id)
-                }}
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  fontSize: 16
-                }}
-              >
-                {favorites.includes(p.id) ? "❤️" : "🤍"}
-              </div>
-
-              <div
-                onClick={() => (window as any).playPodcast?.(p)}
-              >
-                <h4 style={{ margin: "0 0 6px 0" }}>{p.title}</h4>
-
-                <p style={{ margin: 0, fontSize: 12, opacity: 0.8 }}>
-                  {p.category}
-                </p>
-
-                <p style={{ margin: "4px 0 0 0", fontSize: 11, opacity: 0.5 }}>
-                  {p.date}
-                </p>
-              </div>
+      {/* TARGETES */}
+      <div style={{ display: "grid", gap: 12 }}>
+        {filtered.map(p => (
+          <div
+            key={p.id}
+            onClick={() => setCurrent(p)}
+            style={{
+              padding: 12,
+              borderRadius: 12,
+              background: "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
+              cursor: "pointer"
+            }}
+          >
+            <div style={{ fontWeight: "bold" }}>{p.title}</div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>
+              {p.category} · {p.date}
             </div>
-          ))}
-        </div>
-      </main>
+          </div>
+        ))}
+      </div>
 
-      <Player />
-    </>
+      {/* PLAYER FIX */}
+      {current && (
+        <Player
+          key={current.id}
+          src={current.audio}
+          title={current.title}
+        />
+      )}
+    </div>
   )
 }
