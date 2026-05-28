@@ -73,11 +73,7 @@ export default function Page() {
   }
 
   if (loading) {
-    return (
-      <div style={{ padding: 20 }}>
-        Carregant podcasts...
-      </div>
-    )
+    return <div style={{ padding: 20 }}>Carregant podcasts...</div>
   }
 
   return (
@@ -85,79 +81,106 @@ export default function Page() {
       style={{
         minHeight: "100vh",
         background: "#0b0b1a",
-        color: "white",
-        padding: 20
+        color: "white"
       }}
     >
-      <img
-        src="/logo.png"
-        alt="logo"
-        style={{ height: 50, marginBottom: 10 }}
-      />
-
-      <h1 style={{ fontSize: 28, marginBottom: 10 }}>
-        Això és Vila!
-      </h1>
-
+      {/* HEADER FIXE */}
       <div
         style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          marginBottom: 20
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          background: "#0b0b1a",
+          padding: 20,
+          borderBottom: "1px solid #222"
         }}
       >
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 20,
-              border: "none",
-              background:
-                category === cat ? "#7c3aed" : "#222",
-              color: "white",
-              cursor: "pointer"
-            }}
-          >
-            {cat}
-          </button>
-        ))}
+        {/* LOGO + TÍTOL */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 15
+          }}
+        >
+          <img
+            src="/logo.png"
+            alt="logo"
+            style={{ height: 45 }}
+          />
+
+          <h1 style={{ fontSize: 26, margin: 0 }}>
+            Això és Vila!
+          </h1>
+        </div>
+
+        {/* CATEGORIES */}
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap"
+          }}
+        >
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 20,
+                border: "none",
+                background:
+                  category === cat ? "#7c3aed" : "#222",
+                color: "white",
+                cursor: "pointer"
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div style={{ display: "grid", gap: 12, marginBottom: 120 }}>
-        {filtered.map(p => (
-          <div
-            key={p.id}
-            onClick={() => setCurrent(p)}
-            style={{
-              padding: 12,
-              borderRadius: 12,
-              background:
-                "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
-              cursor: "pointer"
-            }}
-          >
-            <div style={{ fontWeight: "bold" }}>
-              {p.title}
-            </div>
+      {/* CONTINGUT */}
+      <div style={{ padding: 20, paddingBottom: 120 }}>
+        <div style={{ display: "grid", gap: 12 }}>
+          {filtered.map(p => (
+            <div
+              key={p.id}
+              onClick={() => setCurrent(p)}
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                background:
+                  "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
+                cursor: "pointer"
+              }}
+            >
+              <div style={{ fontWeight: "bold" }}>
+                {p.title}
+              </div>
 
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              {p.category} ·{" "}
-              {new Date(p.date).toLocaleDateString()}
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {p.category} ·{" "}
+                {new Date(p.date).toLocaleDateString()}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
+      {/* PLAYER */}
       {current && (
         <Player
           key={current.id}
           src={current.audio}
           title={current.title}
           autoPlay={true}
-          onNext={() => setCurrent(getNext(current.id))}
+          onNext={() =>
+            setCurrent(getNext(current.id))
+          }
         />
       )}
     </div>
