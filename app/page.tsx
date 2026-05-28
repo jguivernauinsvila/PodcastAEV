@@ -34,7 +34,6 @@ export default function Page() {
 
         setPodcasts(data)
         setCurrent(data.length > 0 ? data[0] : null)
-
       } catch (err) {
         console.error(err)
         setPodcasts([])
@@ -90,6 +89,12 @@ export default function Page() {
         padding: 20
       }}
     >
+      <img
+        src="/logo.png"
+        alt="logo"
+        style={{ height: 50, marginBottom: 10 }}
+      />
+
       <h1 style={{ fontSize: 28, marginBottom: 10 }}>
         Això és Vila!
       </h1>
@@ -139,7 +144,8 @@ export default function Page() {
             </div>
 
             <div style={{ fontSize: 12, opacity: 0.7 }}>
-              {p.category} · {p.date}
+              {p.category} ·{" "}
+              {new Date(p.date).toLocaleDateString()}
             </div>
           </div>
         ))}
@@ -151,9 +157,7 @@ export default function Page() {
           src={current.audio}
           title={current.title}
           autoPlay={true}
-          onNext={() =>
-            setCurrent(getNext(current.id))
-          }
+          onNext={() => setCurrent(getNext(current.id))}
         />
       )}
     </div>
