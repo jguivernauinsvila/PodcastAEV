@@ -10,8 +10,6 @@ type Props = {
   startTime?: number
 }
 
-const STORAGE_TIME = "podcast_last_time"
-
 export default function Player({
   src,
   title,
@@ -32,7 +30,6 @@ export default function Player({
 
     const update = () => {
       setProgress((audio.currentTime / audio.duration) * 100 || 0)
-      localStorage.setItem(STORAGE_TIME, String(audio.currentTime))
     }
 
     const end = () => onNext()
@@ -105,27 +102,44 @@ export default function Player({
   }
 
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", padding: 12 }}>
-
-      <div style={{ fontSize: 14 }}>{title}</div>
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", padding: 12, borderTop: "1px solid #222" }}>
+      <div style={{ fontSize: 14, marginBottom: 6 }}>{title}</div>
 
       <div
         ref={barRef}
         onClick={seek}
-        style={{ height: 8, background: "#333", borderRadius: 4, margin: "10px 0" }}
+        style={{ height: 8, background: "#333", borderRadius: 4, marginBottom: 10 }}
       >
         <div style={{ width: `${progress}%`, height: "100%", background: "#7c3aed" }} />
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => skip(-15)}>⏪ 15</button>
-        <button onClick={toggle}>{playing ? "Pause" : "Play"}</button>
-        <button onClick={() => skip(15)}>15 ⏩</button>
-        <button onClick={changeSpeed}>{speed}x</button>
-        <button onClick={onNext}>Next</button>
+        <button onClick={() => skip(-15)} style={btn}>-15</button>
+        <button onClick={toggle} style={btnMain}>
+          {playing ? "Pause" : "Play"}
+        </button>
+        <button onClick={() => skip(15)} style={btn}>+15</button>
+        <button onClick={changeSpeed} style={btn}>{speed}x</button>
+        <button onClick={onNext} style={btn}>Next</button>
       </div>
 
       <audio ref={audioRef} src={src} />
     </div>
   )
+}
+
+const btn = {
+  padding: "6px 10px",
+  borderRadius: 8,
+  border: "none",
+  background: "#222",
+  color: "white"
+}
+
+const btnMain = {
+  padding: "6px 12px",
+  borderRadius: 8,
+  border: "none",
+  background: "#7c3aed",
+  color: "white"
 }

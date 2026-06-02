@@ -16,6 +16,7 @@ const API_URL =
 
 const STORAGE_ID = "podcast_last_id"
 const STORAGE_TIME = "podcast_last_time"
+const STORAGE_LISTENED = "podcast_listened"
 
 export default function Page() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
@@ -38,7 +39,7 @@ export default function Page() {
 
         const savedId = localStorage.getItem(STORAGE_ID)
         const savedTime = localStorage.getItem(STORAGE_TIME)
-        const savedListened = localStorage.getItem("podcast_listened")
+        const savedListened = localStorage.getItem(STORAGE_LISTENED)
 
         if (savedListened) {
           setListened(JSON.parse(savedListened))
@@ -81,6 +82,14 @@ export default function Page() {
     )
   }, [category, podcasts])
 
+  const categories = useMemo(() => {
+    const base = Array.from(
+      new Set(podcasts.map(p => normalizeCategory(p.category)))
+    )
+
+    return ["Tot", ...base]
+  }, [podcasts])
+
   const getNext = (id: number) => {
     const index = filtered.findIndex(p => p.id === id)
     if (index === -1) return filtered[0]
@@ -91,7 +100,7 @@ export default function Page() {
   const markListened = (id: number) => {
     const updated = Array.from(new Set([...listened, id]))
     setListened(updated)
-    localStorage.setItem("podcast_listened", JSON.stringify(updated))
+    localStorage.setItem(STORAGE_LISTENED, JSON.stringify(updated))
   }
 
   const selectEpisode = (p: Podcast, play = true) => {
@@ -103,49 +112,16 @@ export default function Page() {
     localStorage.setItem(STORAGE_TIME, "0")
   }
 
-  if (loading) return <div style={{ padding: 20 }}>Carregant...</div>
+  if (loading) {
+    return <div style={{ padding: 20 }}>Carregant...</div>
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white" }}>
-      
-      {/* 🔝 CONTINUAR ESCOLTANT */}
-      {current && (
-        <div style={{
-          padding: 12,
-          margin: 10,
-          border: "1px solid #333",
-          borderRadius: 12,
-          background: "#15152a"
-        }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            Continuar escoltant
-          </div>
+      <div style={{ padding: 20, borderBottom: "1px solid #222" }}>
+        <h1 style={{ margin: 0 }}>Això és Vila!</h1>
 
-          <div style={{ fontWeight: "bold" }}>
-            {current.title}
-          </div>
-
-          <button
-            onClick={() => setAutoPlay(true)}
-            style={{
-              marginTop: 8,
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: "none",
-              background: "#7c3aed",
-              color: "white"
-            }}
-          >
-            ▶︎ Reprendre
-          </button>
-        </div>
-      )}
-
-      {/* HEADER */}
-      <div style={{ padding: 20 }}>
-        <h1>Això és Vila!</h1>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
           {["Tot", ...new Set(podcasts.map(p => normalizeCategory(p.category)))].map(cat => (
             <button
               key={cat}
@@ -164,7 +140,6 @@ export default function Page() {
         </div>
       </div>
 
-      {/* LIST */}
       <div style={{ padding: 20, paddingBottom: 120 }}>
         <div style={{ display: "grid", gap: 12 }}>
           {filtered.map(p => (
@@ -181,7 +156,7 @@ export default function Page() {
             >
               <div onClick={() => selectEpisode(p, true)}>
                 <div style={{ fontWeight: "bold" }}>
-                  {listened.includes(p.id) ? "✔ " : ""}{p.title}
+                  {listened.includes(p.id) ? "✓ " : ""}{p.title}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>
                   {normalizeCategory(p.category)}
@@ -191,21 +166,20 @@ export default function Page() {
               <button
                 onClick={() => selectEpisode(p, true)}
                 style={{
-                  padding: "4px 10px",
-                  borderRadius: 6,
+                  padding: "6px 10px",
+                  borderRadius: 8,
                   border: "none",
                   background: "#7c3aed",
                   color: "white"
                 }}
               >
-                ▶︎
+                Play
               </button>
             </div>
           ))}
         </div>
       </div>
 
-      {/* PLAYER */}
       {current && (
         <Player
           key={current.id}
