@@ -29,7 +29,8 @@ export default function Player({
     if (!audio) return
 
     const update = () => {
-      setProgress((audio.currentTime / audio.duration) * 100 || 0)
+      if (!audio.duration) return
+      setProgress((audio.currentTime / audio.duration) * 100)
     }
 
     const end = () => onNext()
@@ -50,16 +51,24 @@ export default function Player({
     audio.load()
 
     const run = async () => {
-      await new Promise(r =>
-        audio.addEventListener("loadedmetadata", r, { once: true })
-      )
+      await new Promise<void>(resolve => {
+        const handler = () => {
+          audio.removeEventListener("loadedmetadata", handler)
+          resolve()
+        }
+        audio.addEventListener("loadedmetadata", handler)
+      })
 
-      audio.currentTime = startTime
+      audio.currentTime = startTime || 0
       audio.playbackRate = speed
 
       if (autoPlay) {
-        await audio.play()
-        setPlaying(true)
+        try {
+          await audio.play()
+          setPlaying(true)
+        } catch {
+          setPlaying(false)
+        }
       }
     }
 
@@ -91,13 +100,16 @@ export default function Player({
     if (audioRef.current) audioRef.current.playbackRate = next
   }
 
-  const seek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const seek = (e: any) => {
     const audio = audioRef.current
     const bar = barRef.current
     if (!audio || !bar) return
 
     const rect = bar.getBoundingClientRect()
     const x = e.clientX - rect.left
+
+    if (!audio.duration) return
+
     audio.currentTime = (x / rect.width) * audio.duration
   }
 
@@ -115,9 +127,7 @@ export default function Player({
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={() => skip(-15)} style={btn}>-15</button>
-        <button onClick={toggle} style={btnMain}>
-          {playing ? "Pause" : "Play"}
-        </button>
+        <button onClick={toggle} style={btnMain}>{playing ? "Pause" : "Play"}</button>
         <button onClick={() => skip(15)} style={btn}>+15</button>
         <button onClick={changeSpeed} style={btn}>{speed}x</button>
         <button onClick={onNext} style={btn}>Next</button>

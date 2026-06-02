@@ -33,13 +33,25 @@ export default function Page() {
         const res = await fetch(API_URL)
         const data = await res.json()
 
-        if (!Array.isArray(data)) return
+        if (!Array.isArray(data)) {
+          setPodcasts([])
+          setCurrent(null)
+          return
+        }
 
         setPodcasts(data)
 
-        const savedId = localStorage.getItem(STORAGE_ID)
-        const savedTime = localStorage.getItem(STORAGE_TIME)
-        const savedListened = localStorage.getItem(STORAGE_LISTENED)
+        const savedId = typeof window !== "undefined"
+          ? localStorage.getItem(STORAGE_ID)
+          : null
+
+        const savedTime = typeof window !== "undefined"
+          ? localStorage.getItem(STORAGE_TIME)
+          : null
+
+        const savedListened = typeof window !== "undefined"
+          ? localStorage.getItem(STORAGE_LISTENED)
+          : null
 
         if (savedListened) {
           setListened(JSON.parse(savedListened))
@@ -49,9 +61,13 @@ export default function Page() {
           ? data.find(p => p.id === Number(savedId))
           : null
 
-        setCurrent(last || data[0])
+        setCurrent(last || data[0] || null)
         setStartTime(savedTime ? Number(savedTime) : 0)
         setAutoPlay(false)
+      } catch (err) {
+        console.error(err)
+        setPodcasts([])
+        setCurrent(null)
       } finally {
         setLoading(false)
       }
@@ -100,7 +116,10 @@ export default function Page() {
   const markListened = (id: number) => {
     const updated = Array.from(new Set([...listened, id]))
     setListened(updated)
-    localStorage.setItem(STORAGE_LISTENED, JSON.stringify(updated))
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_LISTENED, JSON.stringify(updated))
+    }
   }
 
   const selectEpisode = (p: Podcast, play = true) => {
@@ -108,8 +127,10 @@ export default function Page() {
     setAutoPlay(play)
     setStartTime(0)
 
-    localStorage.setItem(STORAGE_ID, String(p.id))
-    localStorage.setItem(STORAGE_TIME, "0")
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_ID, String(p.id))
+      localStorage.setItem(STORAGE_TIME, "0")
+    }
   }
 
   if (loading) {
