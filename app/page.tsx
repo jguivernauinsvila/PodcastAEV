@@ -46,11 +46,21 @@ export default function Page() {
     load()
   }, [])
 
+  // 🔧 NORMALITZACIÓ DE CATEGORIES
+  const normalizeCategory = (cat: string) => {
+    if (!cat) return "Sense categoria"
+    if (cat.toLowerCase() === "all") return "Tot"
+    if (cat === "Interessants") return "Parlem-ne"
+    return cat
+  }
+
   const filtered = useMemo(() => {
     let list = [...podcasts]
 
     if (category !== "Tot") {
-      list = list.filter(p => p.category === category)
+      list = list.filter(
+        p => normalizeCategory(p.category) === category
+      )
     }
 
     return list.sort(
@@ -61,7 +71,12 @@ export default function Page() {
   }, [category, podcasts])
 
   const categories = useMemo(() => {
-    const base = Array.from(new Set(podcasts.map(p => p.category)))
+    const base = Array.from(
+      new Set(
+        podcasts.map(p => normalizeCategory(p.category))
+      )
+    )
+
     return ["Tot", ...base]
   }, [podcasts])
 
@@ -137,7 +152,7 @@ export default function Page() {
                 cursor: "pointer"
               }}
             >
-              {cat === "Interessants" ? "Parlem-ne" : cat}
+              {cat}
             </button>
           ))}
         </div>
@@ -163,7 +178,7 @@ export default function Page() {
               </div>
 
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {p.category} ·{" "}
+                {normalizeCategory(p.category)} ·{" "}
                 {new Date(p.date).toLocaleDateString()}
               </div>
             </div>
