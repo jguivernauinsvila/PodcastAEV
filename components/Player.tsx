@@ -43,22 +43,33 @@ export default function Player({ src, title, onNext, autoPlay }: Props) {
 
     audio.load()
 
+    const playAudio = async () => {
+      try {
+        await audio.play()
+        setPlaying(true)
+      } catch {
+        setPlaying(false)
+      }
+    }
+
     if (autoPlay) {
-      audio.play()
-      setPlaying(true)
+      playAudio()
     } else {
       setPlaying(false)
     }
-  }, [src])
+  }, [src, autoPlay])
 
   const toggle = () => {
     const audio = audioRef.current
     if (!audio) return
 
-    if (playing) audio.pause()
-    else audio.play()
-
-    setPlaying(!playing)
+    if (playing) {
+      audio.pause()
+      setPlaying(false)
+    } else {
+      audio.play()
+      setPlaying(true)
+    }
   }
 
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -74,16 +85,17 @@ export default function Player({ src, title, onNext, autoPlay }: Props) {
   }
 
   return (
-    <div style={{
-      position: "fixed",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      background: "#111",
-      padding: 12,
-      borderTop: "1px solid #333"
-    }}>
-
+    <div
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: "#111",
+        padding: 12,
+        borderTop: "1px solid #333"
+      }}
+    >
       <div style={{ fontSize: 14, marginBottom: 6 }}>
         {title}
       </div>
@@ -99,11 +111,13 @@ export default function Player({ src, title, onNext, autoPlay }: Props) {
           cursor: "pointer"
         }}
       >
-        <div style={{
-          width: `${progress}%`,
-          height: "100%",
-          background: "#7c3aed"
-        }} />
+        <div
+          style={{
+            width: `${progress}%`,
+            height: "100%",
+            background: "#7c3aed"
+          }}
+        />
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>

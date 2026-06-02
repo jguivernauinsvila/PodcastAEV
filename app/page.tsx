@@ -16,7 +16,7 @@ const API_URL =
 
 export default function Page() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
-  const [category, setCategory] = useState("all")
+  const [category, setCategory] = useState("Tot")
   const [current, setCurrent] = useState<Podcast | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -49,7 +49,7 @@ export default function Page() {
   const filtered = useMemo(() => {
     let list = [...podcasts]
 
-    if (category !== "all") {
+    if (category !== "Tot") {
       list = list.filter(p => p.category === category)
     }
 
@@ -62,7 +62,7 @@ export default function Page() {
 
   const categories = useMemo(() => {
     const base = Array.from(new Set(podcasts.map(p => p.category)))
-    return ["all", ...base]
+    return ["Tot", ...base]
   }, [podcasts])
 
   const getNext = (id: number) => {
@@ -137,7 +137,7 @@ export default function Page() {
                 cursor: "pointer"
               }}
             >
-              {cat}
+              {cat === "Interessants" ? "Parlem-ne" : cat}
             </button>
           ))}
         </div>
@@ -178,9 +178,7 @@ export default function Page() {
           src={current.audio}
           title={current.title}
           autoPlay={true}
-          onNext={() =>
-            setCurrent(getNext(current.id))
-          }
+          onNext={() => setCurrent(getNext(current.id))}
         />
       )}
     </div>
