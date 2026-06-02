@@ -7,26 +7,38 @@ type Props = {
   title: string
   onNext: () => void
   autoPlay?: boolean
+  startTime?: number
 }
 
-export default function Player({ src, title, onNext, autoPlay }: Props) {
+const STORAGE_TIME = "podcast_last_time"
+
+export default function Player({
+  src,
+  title,
+  onNext,
+  autoPlay,
+  startTime = 0
+}: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const barRef = useRef<HTMLDivElement | null>(null)
 
   const [progress, setProgress] = useState(0)
   const [playing, setPlaying] = useState(false)
 
+  // 🎧 setup audio + restore time
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
     const update = () => {
-      setProgress((audio.currentTime / audio.duration) * 100 || 0)
+      const pct = (audio.currentTime / audio.duration) * 100 || 0
+      setProgress(pct)
+
+      // 💾 guardar posició constantment
+      localStorage.setItem(STORAGE_TIME, String(audio.currentTime))
     }
 
-    const end = () => {
-      onNext()
-    }
+    const end = () => onNext()
 
     audio.addEventListener("timeupdate", update)
     audio.addEventListener("ended", end)
@@ -37,6 +49,7 @@ export default function Player({ src, title, onNext, autoPlay }: Props) {
     }
   }, [onNext])
 
+  // ⏱️ restore position + autoplay control
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -52,12 +65,25 @@ export default function Player({ src, title, onNext, autoPlay }: Props) {
       }
     }
 
-    if (autoPlay) {
-      playAudio()
-    } else {
-      setPlaying(false)
+    const handle = async () => {
+      // esperar metadata per poder seek
+      await new Promise(resolve => {
+        const onMeta = () => {
+          audio.removeEventListener("loadedmetadata", onMeta)
+          resolve(true)
+        }
+        audio.addEventListener("loadedmetadata", onMeta)
+      })
+
+      audio.currentTime = startTime || 0
+
+      if (autoPlay) {
+        playAudio()
+      }
     }
-  }, [src, autoPlay])
+
+    handle()
+  }, [src, autoPlay, startTime])
 
   const toggle = () => {
     const audio = audioRef.current
@@ -79,37 +105,17 @@ export default function Player({ src, title, onNext, autoPlay }: Props) {
 
     const rect = bar.getBoundingClientRect()
     const x = e.clientX - rect.left
-    const percent = x / rect.width
-
-    audio.currentTime = percent * audio.duration
+    audio.currentTime = (x / rect.width) * audio.duration
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: "#111",
-        padding: 12,
-        borderTop: "1px solid #333"
-      }}
-    >
-      <div style={{ fontSize: 14, marginBottom: 6 }}>
-        {title}
-      </div>
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", padding: 12 }}>
+      <div style={{ fontSize: 14 }}>{title}</div>
 
       <div
         ref={barRef}
         onClick={seek}
-        style={{
-          height: 8,
-          background: "#333",
-          borderRadius: 4,
-          marginBottom: 10,
-          cursor: "pointer"
-        }}
+        style={{ height: 8, background: "#333", borderRadius: 4, margin: "10px 0" }}
       >
         <div
           style={{
@@ -121,31 +127,11 @@ export default function Player({ src, title, onNext, autoPlay }: Props) {
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button
-          onClick={toggle}
-          style={{
-            padding: "6px 12px",
-            borderRadius: 8,
-            border: "none",
-            background: "#7c3aed",
-            color: "white"
-          }}
-        >
+        <button onClick={toggle}>
           {playing ? "Pause" : "Play"}
         </button>
 
-        <button
-          onClick={onNext}
-          style={{
-            padding: "6px 12px",
-            borderRadius: 8,
-            border: "none",
-            background: "#333",
-            color: "white"
-          }}
-        >
-          Next
-        </button>
+        <button onClick={onNext}>Next</button>
       </div>
 
       <audio ref={audioRef} src={src} />

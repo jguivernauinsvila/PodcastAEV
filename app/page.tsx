@@ -14,12 +14,18 @@ type Podcast = {
 const API_URL =
   "https://script.google.com/macros/s/AKfycbwkPmcBtauh47l98xQ66LWUuYheSUUlLLxewHnf1X9NSJ-o2viUIVEtTaPqzeJK5131eg/exec"
 
+const STORAGE_ID = "podcast_last_id"
+const STORAGE_TIME = "podcast_last_time"
+
 export default function Page() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
   const [category, setCategory] = useState("Tot")
   const [current, setCurrent] = useState<Podcast | null>(null)
+  const [autoPlay, setAutoPlay] = useState(false)
+  const [startTime, setStartTime] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
+  // 🔁 carregar podcasts + restaurar estat
   useEffect(() => {
     const load = async () => {
       try {
@@ -28,16 +34,31 @@ export default function Page() {
 
         if (!Array.isArray(data)) {
           setPodcasts([])
-          setCurrent(null)
           return
         }
 
         setPodcasts(data)
-        setCurrent(data.length > 0 ? data[0] : null)
+
+        // 🧠 RESTAURACIÓ MEMÒRIA
+        const savedId = localStorage.getItem(STORAGE_ID)
+        const savedTime = localStorage.getItem(STORAGE_TIME)
+
+        const last = savedId
+          ? data.find(p => p.id === Number(savedId))
+          : null
+
+        if (last) {
+          setCurrent(last)
+          setStartTime(savedTime ? Number(savedTime) : 0)
+        } else {
+          setCurrent(data[0] || null)
+          setStartTime(0)
+        }
+
+        setAutoPlay(false)
       } catch (err) {
         console.error(err)
         setPodcasts([])
-        setCurrent(null)
       } finally {
         setLoading(false)
       }
@@ -46,7 +67,6 @@ export default function Page() {
     load()
   }, [])
 
-  // 🔧 NORMALITZACIÓ DE CATEGORIES
   const normalizeCategory = (cat: string) => {
     if (!cat) return "Sense categoria"
     if (cat.toLowerCase() === "all") return "Tot"
@@ -65,18 +85,14 @@ export default function Page() {
 
     return list.sort(
       (a, b) =>
-        new Date(b.date).getTime() -
-        new Date(a.date).getTime()
+        new Date(b.date).getTime() - new Date(a.date).getTime()
     )
   }, [category, podcasts])
 
   const categories = useMemo(() => {
     const base = Array.from(
-      new Set(
-        podcasts.map(p => normalizeCategory(p.category))
-      )
+      new Set(podcasts.map(p => normalizeCategory(p.category)))
     )
-
     return ["Tot", ...base]
   }, [podcasts])
 
@@ -87,57 +103,26 @@ export default function Page() {
     return filtered[0]
   }
 
+  const handleSelect = (p: Podcast) => {
+    setCurrent(p)
+    setAutoPlay(true)
+    setStartTime(0)
+
+    localStorage.setItem(STORAGE_ID, String(p.id))
+    localStorage.setItem(STORAGE_TIME, "0")
+  }
+
   if (loading) {
     return <div style={{ padding: 20 }}>Carregant podcasts...</div>
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0b0b1a",
-        color: "white"
-      }}
-    >
-      {/* HEADER FIXE */}
-      <div
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          background: "#0b0b1a",
-          padding: 20,
-          borderBottom: "1px solid #222"
-        }}
-      >
-        {/* LOGO + TÍTOL */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 15
-          }}
-        >
-          <img
-            src="/logo.png"
-            alt="logo"
-            style={{ height: 45 }}
-          />
+    <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white" }}>
+      {/* HEADER */}
+      <div style={{ position: "sticky", top: 0, background: "#0b0b1a", padding: 20, borderBottom: "1px solid #222" }}>
+        <h1>Això és Vila!</h1>
 
-          <h1 style={{ fontSize: 26, margin: 0 }}>
-            Això és Vila!
-          </h1>
-        </div>
-
-        {/* CATEGORIES */}
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap"
-          }}
-        >
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {categories.map(cat => (
             <button
               key={cat}
@@ -146,10 +131,8 @@ export default function Page() {
                 padding: "6px 12px",
                 borderRadius: 20,
                 border: "none",
-                background:
-                  category === cat ? "#7c3aed" : "#222",
-                color: "white",
-                cursor: "pointer"
+                background: category === cat ? "#7c3aed" : "#222",
+                color: "white"
               }}
             >
               {cat}
@@ -158,28 +141,23 @@ export default function Page() {
         </div>
       </div>
 
-      {/* CONTINGUT */}
+      {/* LIST */}
       <div style={{ padding: 20, paddingBottom: 120 }}>
         <div style={{ display: "grid", gap: 12 }}>
           {filtered.map(p => (
             <div
               key={p.id}
-              onClick={() => setCurrent(p)}
+              onClick={() => handleSelect(p)}
               style={{
                 padding: 12,
                 borderRadius: 12,
-                background:
-                  "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
+                background: "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
                 cursor: "pointer"
               }}
             >
-              <div style={{ fontWeight: "bold" }}>
-                {p.title}
-              </div>
-
+              <div style={{ fontWeight: "bold" }}>{p.title}</div>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {normalizeCategory(p.category)} ·{" "}
-                {new Date(p.date).toLocaleDateString()}
+                {normalizeCategory(p.category)} · {new Date(p.date).toLocaleDateString()}
               </div>
             </div>
           ))}
@@ -192,8 +170,12 @@ export default function Page() {
           key={current.id}
           src={current.audio}
           title={current.title}
-          autoPlay={true}
-          onNext={() => setCurrent(getNext(current.id))}
+          autoPlay={autoPlay}
+          startTime={startTime}
+          onNext={() => {
+            const next = getNext(current.id)
+            handleSelect(next)
+          }}
         />
       )}
     </div>
