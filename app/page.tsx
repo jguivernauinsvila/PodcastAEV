@@ -22,43 +22,35 @@ export default function Page() {
   const [category, setCategory] = useState("Tot")
   const [current, setCurrent] = useState<Podcast | null>(null)
   const [autoPlay, setAutoPlay] = useState(false)
-  const [startTime, setStartTime] = useState<number>(0)
+  const [startTime, setStartTime] = useState(0)
+  const [listened, setListened] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 🔁 carregar podcasts + restaurar estat
   useEffect(() => {
     const load = async () => {
       try {
         const res = await fetch(API_URL)
         const data = await res.json()
 
-        if (!Array.isArray(data)) {
-          setPodcasts([])
-          return
-        }
+        if (!Array.isArray(data)) return
 
         setPodcasts(data)
 
-        // 🧠 RESTAURACIÓ MEMÒRIA
         const savedId = localStorage.getItem(STORAGE_ID)
         const savedTime = localStorage.getItem(STORAGE_TIME)
+        const savedListened = localStorage.getItem("podcast_listened")
+
+        if (savedListened) {
+          setListened(JSON.parse(savedListened))
+        }
 
         const last = savedId
           ? data.find(p => p.id === Number(savedId))
           : null
 
-        if (last) {
-          setCurrent(last)
-          setStartTime(savedTime ? Number(savedTime) : 0)
-        } else {
-          setCurrent(data[0] || null)
-          setStartTime(0)
-        }
-
+        setCurrent(last || data[0])
+        setStartTime(savedTime ? Number(savedTime) : 0)
         setAutoPlay(false)
-      } catch (err) {
-        console.error(err)
-        setPodcasts([])
       } finally {
         setLoading(false)
       }
@@ -89,13 +81,6 @@ export default function Page() {
     )
   }, [category, podcasts])
 
-  const categories = useMemo(() => {
-    const base = Array.from(
-      new Set(podcasts.map(p => normalizeCategory(p.category)))
-    )
-    return ["Tot", ...base]
-  }, [podcasts])
-
   const getNext = (id: number) => {
     const index = filtered.findIndex(p => p.id === id)
     if (index === -1) return filtered[0]
@@ -103,27 +88,65 @@ export default function Page() {
     return filtered[0]
   }
 
-  const handleSelect = (p: Podcast) => {
+  const markListened = (id: number) => {
+    const updated = Array.from(new Set([...listened, id]))
+    setListened(updated)
+    localStorage.setItem("podcast_listened", JSON.stringify(updated))
+  }
+
+  const selectEpisode = (p: Podcast, play = true) => {
     setCurrent(p)
-    setAutoPlay(true)
+    setAutoPlay(play)
     setStartTime(0)
 
     localStorage.setItem(STORAGE_ID, String(p.id))
     localStorage.setItem(STORAGE_TIME, "0")
   }
 
-  if (loading) {
-    return <div style={{ padding: 20 }}>Carregant podcasts...</div>
-  }
+  if (loading) return <div style={{ padding: 20 }}>Carregant...</div>
 
   return (
     <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white" }}>
+      
+      {/* 🔝 CONTINUAR ESCOLTANT */}
+      {current && (
+        <div style={{
+          padding: 12,
+          margin: 10,
+          border: "1px solid #333",
+          borderRadius: 12,
+          background: "#15152a"
+        }}>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>
+            Continuar escoltant
+          </div>
+
+          <div style={{ fontWeight: "bold" }}>
+            {current.title}
+          </div>
+
+          <button
+            onClick={() => setAutoPlay(true)}
+            style={{
+              marginTop: 8,
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: "none",
+              background: "#7c3aed",
+              color: "white"
+            }}
+          >
+            ▶︎ Reprendre
+          </button>
+        </div>
+      )}
+
       {/* HEADER */}
-      <div style={{ position: "sticky", top: 0, background: "#0b0b1a", padding: 20, borderBottom: "1px solid #222" }}>
+      <div style={{ padding: 20 }}>
         <h1>Això és Vila!</h1>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {categories.map(cat => (
+          {["Tot", ...new Set(podcasts.map(p => normalizeCategory(p.category)))].map(cat => (
             <button
               key={cat}
               onClick={() => setCategory(cat)}
@@ -147,18 +170,36 @@ export default function Page() {
           {filtered.map(p => (
             <div
               key={p.id}
-              onClick={() => handleSelect(p)}
               style={{
                 padding: 12,
                 borderRadius: 12,
-                background: "linear-gradient(135deg,#1f1b3a,#2b1b4a)",
-                cursor: "pointer"
+                background: "#1f1b3a",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
               }}
             >
-              <div style={{ fontWeight: "bold" }}>{p.title}</div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {normalizeCategory(p.category)} · {new Date(p.date).toLocaleDateString()}
+              <div onClick={() => selectEpisode(p, true)}>
+                <div style={{ fontWeight: "bold" }}>
+                  {listened.includes(p.id) ? "✔ " : ""}{p.title}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  {normalizeCategory(p.category)}
+                </div>
               </div>
+
+              <button
+                onClick={() => selectEpisode(p, true)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "none",
+                  background: "#7c3aed",
+                  color: "white"
+                }}
+              >
+                ▶︎
+              </button>
             </div>
           ))}
         </div>
@@ -174,7 +215,8 @@ export default function Page() {
           startTime={startTime}
           onNext={() => {
             const next = getNext(current.id)
-            handleSelect(next)
+            selectEpisode(next, true)
+            markListened(current.id)
           }}
         />
       )}

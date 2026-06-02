@@ -24,17 +24,14 @@ export default function Player({
 
   const [progress, setProgress] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(1)
 
-  // 🎧 setup audio + restore time
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
     const update = () => {
-      const pct = (audio.currentTime / audio.duration) * 100 || 0
-      setProgress(pct)
-
-      // 💾 guardar posició constantment
+      setProgress((audio.currentTime / audio.duration) * 100 || 0)
       localStorage.setItem(STORAGE_TIME, String(audio.currentTime))
     }
 
@@ -49,40 +46,27 @@ export default function Player({
     }
   }, [onNext])
 
-  // ⏱️ restore position + autoplay control
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
     audio.load()
 
-    const playAudio = async () => {
-      try {
-        await audio.play()
-        setPlaying(true)
-      } catch {
-        setPlaying(false)
-      }
-    }
+    const run = async () => {
+      await new Promise(r =>
+        audio.addEventListener("loadedmetadata", r, { once: true })
+      )
 
-    const handle = async () => {
-      // esperar metadata per poder seek
-      await new Promise(resolve => {
-        const onMeta = () => {
-          audio.removeEventListener("loadedmetadata", onMeta)
-          resolve(true)
-        }
-        audio.addEventListener("loadedmetadata", onMeta)
-      })
-
-      audio.currentTime = startTime || 0
+      audio.currentTime = startTime
+      audio.playbackRate = speed
 
       if (autoPlay) {
-        playAudio()
+        await audio.play()
+        setPlaying(true)
       }
     }
 
-    handle()
+    run()
   }, [src, autoPlay, startTime])
 
   const toggle = () => {
@@ -98,6 +82,18 @@ export default function Player({
     }
   }
 
+  const skip = (sec: number) => {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.currentTime += sec
+  }
+
+  const changeSpeed = () => {
+    const next = speed === 1 ? 1.25 : speed === 1.25 ? 1.5 : 1
+    setSpeed(next)
+    if (audioRef.current) audioRef.current.playbackRate = next
+  }
+
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current
     const bar = barRef.current
@@ -110,6 +106,7 @@ export default function Player({
 
   return (
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", padding: 12 }}>
+
       <div style={{ fontSize: 14 }}>{title}</div>
 
       <div
@@ -117,20 +114,14 @@ export default function Player({
         onClick={seek}
         style={{ height: 8, background: "#333", borderRadius: 4, margin: "10px 0" }}
       >
-        <div
-          style={{
-            width: `${progress}%`,
-            height: "100%",
-            background: "#7c3aed"
-          }}
-        />
+        <div style={{ width: `${progress}%`, height: "100%", background: "#7c3aed" }} />
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={toggle}>
-          {playing ? "Pause" : "Play"}
-        </button>
-
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button onClick={() => skip(-15)}>⏪ 15</button>
+        <button onClick={toggle}>{playing ? "Pause" : "Play"}</button>
+        <button onClick={() => skip(15)}>15 ⏩</button>
+        <button onClick={changeSpeed}>{speed}x</button>
         <button onClick={onNext}>Next</button>
       </div>
 
