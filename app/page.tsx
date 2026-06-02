@@ -33,25 +33,24 @@ export default function Page() {
         const res = await fetch(API_URL)
         const data = await res.json()
 
-        if (!Array.isArray(data)) {
-          setPodcasts([])
-          setCurrent(null)
-          return
-        }
+        if (!Array.isArray(data)) return
 
         setPodcasts(data)
 
-        const savedId = typeof window !== "undefined"
-          ? localStorage.getItem(STORAGE_ID)
-          : null
+        const savedId =
+          typeof window !== "undefined"
+            ? localStorage.getItem(STORAGE_ID)
+            : null
 
-        const savedTime = typeof window !== "undefined"
-          ? localStorage.getItem(STORAGE_TIME)
-          : null
+        const savedTime =
+          typeof window !== "undefined"
+            ? localStorage.getItem(STORAGE_TIME)
+            : null
 
-        const savedListened = typeof window !== "undefined"
-          ? localStorage.getItem(STORAGE_LISTENED)
-          : null
+        const savedListened =
+          typeof window !== "undefined"
+            ? localStorage.getItem(STORAGE_LISTENED)
+            : null
 
         if (savedListened) {
           setListened(JSON.parse(savedListened))
@@ -64,10 +63,6 @@ export default function Page() {
         setCurrent(last || data[0] || null)
         setStartTime(savedTime ? Number(savedTime) : 0)
         setAutoPlay(false)
-      } catch (err) {
-        console.error(err)
-        setPodcasts([])
-        setCurrent(null)
       } finally {
         setLoading(false)
       }
@@ -99,9 +94,14 @@ export default function Page() {
   }, [category, podcasts])
 
   const categories = useMemo(() => {
-    const base = Array.from(
-      new Set(podcasts.map(p => normalizeCategory(p.category)))
-    )
+    const base: string[] = []
+
+    podcasts.forEach(p => {
+      const cat = normalizeCategory(p.category)
+      if (!base.includes(cat)) {
+        base.push(cat)
+      }
+    })
 
     return ["Tot", ...base]
   }, [podcasts])
@@ -133,9 +133,7 @@ export default function Page() {
     }
   }
 
-  if (loading) {
-    return <div style={{ padding: 20 }}>Carregant...</div>
-  }
+  if (loading) return <div style={{ padding: 20 }}>Carregant...</div>
 
   return (
     <div style={{ minHeight: "100vh", background: "#0b0b1a", color: "white" }}>
@@ -143,7 +141,7 @@ export default function Page() {
         <h1 style={{ margin: 0 }}>Això és Vila!</h1>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-          {["Tot", ...new Set(podcasts.map(p => normalizeCategory(p.category)))].map(cat => (
+          {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setCategory(cat)}
